@@ -94,10 +94,12 @@ public class TemporaryNode implements TemporaryNodeInterface {
             System.out.println(targetHashID);
             out.println("NEAREST? " + targetHashID);
             out.flush(); // Ensure the message is sent immediately
+            socket.close();
 
             // Process NODES response
             String nodesResponse = in.readLine(); // Expecting "NODES <number>"
             System.out.println(nodesResponse);
+
             if (nodesResponse != null && nodesResponse.startsWith("NODES")) {
                 int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
                 if (numberOfNodes > 0) {
@@ -106,6 +108,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                         String nodeName = in.readLine(); // Node name line
                         String nodeAddress = in.readLine(); // Node address line
                         if (nodeName != null && nodeAddress != null) {
+                            socket.close();
                             // For this example, we assume the first node is the closest
                             // You could implement additional logic here to choose the closest based on your criteria
                             return nodeAddress; // Return the address of the first closest node
@@ -169,7 +172,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
         // Return false if the store failed
         try {
             // Ensure the key ends with a newline for consistent hashID computation
-            byte[] keyHashBytes = HashID.computeHashID(key);
+            byte[] keyHashBytes = HashID.computeHashID(key+"\n");
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Use the stored startingNodeAddress to find the closest node for the key's hashID
@@ -222,7 +225,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
     public String get(String key) {
         try {
             // First, compute the hashID of the key.
-            byte[] keyHashBytes = HashID.computeHashID(key); // Ensure the key ends with a newline character.
+            byte[] keyHashBytes = HashID.computeHashID(key + "\n"); // Ensure the key ends with a newline character.
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Then, find the closest node based on the key's hashID. This step may vary depending on how you implement findClosestFullNode.
