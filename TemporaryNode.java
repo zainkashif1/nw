@@ -97,7 +97,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
             // Read the NODES response header to get the number of nodes
             String nodesResponse = in.readLine(); // Expecting "NODES <number>"
-            System.out.println("Received NODES response: " + nodesResponse);
+            System.out.println(nodesResponse);
 
             if (nodesResponse != null && nodesResponse.startsWith("NODES")) {
                 int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
@@ -109,7 +109,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                     String closestNodeName = "";
                     String closestNodeAddress = "";
                     // Iterate over the nodes returned in the response
-                    for (int i = 0; i < numberOfNodes; i++) {
+                    for (int i = 0; i < numberOfNodes*2; i+=2) {
                         closestNodeName = in.readLine(); // Reads the name of the node
                         closestNodeAddress = in.readLine(); // Reads the address of the node
                         // For simplicity, this takes the first node as the closest, but you could implement additional logic here
