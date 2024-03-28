@@ -68,8 +68,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
 
     public String findClosestFullNode(String targetHashID, String startingNodeAddress) throws IOException {
-        // Split the starting node address into host and port
-        // Split the starting node address into host and port
+        // Split the starting node address into IP and port
         String[] addressComponents = startingNodeAddress.split(":");
         if (addressComponents.length != 2) {
             throw new IllegalArgumentException("Invalid starting node address format.");
@@ -81,42 +80,45 @@ public class TemporaryNode implements TemporaryNodeInterface {
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            // Send a START message to the starting node
+            // Send START message to begin communication
             out.println("START 1 TemporaryNode");
+            out.flush(); // Ensure the message is sent immediately
 
-            // Wait for START acknowledgment
+            // Await START acknowledgment
             String startResponse = in.readLine();
             if (startResponse == null || !startResponse.startsWith("START")) {
                 throw new IOException("Failed to start communication with the starting node.");
             }
 
             // Send NEAREST? request with the target hashID
+            System.out.println(targetHashID);
             out.println("NEAREST? " + targetHashID);
+            out.flush(); // Ensure the message is sent immediately
 
-            // Read the NODES response header to get the number of nodes
+            // Process NODES response
             String nodesResponse = in.readLine(); // Expecting "NODES <number>"
+            System.out.println(nodesResponse);
             if (nodesResponse != null && nodesResponse.startsWith("NODES")) {
                 int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
-                String closestNodeName = "";
-                String closestNodeAddress = "";
-                for (int i = 0; i < numberOfNodes * 2; i++) { // Multiply by 2 because each node has two lines: name and address
-                    String line = in.readLine();
-                    if (i % 2 == 0) { // Node name lines (even indices)
-                        closestNodeName = line;
-                        if (!closestNodeName.contains(":")) {
-                            throw new IOException("Invalid node name format: " + closestNodeName);
+                if (numberOfNodes > 0) {
+                    // Iterate through the list of nodes returned in the response
+                    for (int i = 0; i < numberOfNodes; i++) {
+                        String nodeName = in.readLine(); // Node name line
+                        String nodeAddress = in.readLine(); // Node address line
+                        if (nodeName != null && nodeAddress != null) {
+                            // For this example, we assume the first node is the closest
+                            // You could implement additional logic here to choose the closest based on your criteria
+                            return nodeAddress; // Return the address of the first closest node
                         }
-                    } else { // Node address lines (odd indices)
-                        closestNodeAddress = line;
-                        return closestNodeAddress; // For simplicity, return the address of the first node
                     }
                 }
             }
 
-            // If no nodes are returned or there's an issue with the response, indicate failure to find the closest node
-            throw new IOException("Failed to find the closest full node.");
+            // If no nodes are returned or there is an error in the response, indicate failure
+            throw new IOException("Failed to find the closest full node or invalid response format.");
         }
     }
+
 
 
     public boolean start(String startingNodeName, String startingNodeAddress) {
