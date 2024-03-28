@@ -12,9 +12,7 @@ import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 // DO NOT EDIT starts
@@ -29,7 +27,7 @@ interface TemporaryNodeInterface {
 public class TemporaryNode implements TemporaryNodeInterface {
 
     private final Map<String, String> networkMap = new ConcurrentHashMap<>();
-    private String startingNodeAddress;
+    public String startingNodeAddres;
 
     private static String bytesToHex(byte[] hash) {
         StringBuilder hexString = new StringBuilder(2 * hash.length);
@@ -71,27 +69,6 @@ public class TemporaryNode implements TemporaryNodeInterface {
         return distance; // This represents the number of leading matching bits, thus the distance
     }
 
-    private String findNearestNode(String targetHashID) throws NoSuchAlgorithmException {
-        String nearestNodeAddress = null;
-        int smallestDistance = Integer.MAX_VALUE;
-
-        for (Map.Entry<String, String> entry : networkMap.entrySet()) {
-            String nodeName = entry.getKey();
-            String nodeAddress = entry.getValue();
-
-            // Assuming you have a method `computeHashID` that can compute the hashID
-            // for a node given its name or address. Adjust this to your actual method.
-            String nodeHashID = computeHashIDString(nodeName);
-
-            int distance = calculateDistance(targetHashID, nodeHashID);
-            if (distance < smallestDistance) {
-                smallestDistance = distance;
-                nearestNodeAddress = nodeAddress; // Keep the address of the nearest node
-            }
-        }
-
-        return nearestNodeAddress; // Return the address of the nearest node found
-    }
 
     public String findClosestFullNode(String targetHashID, String startingNodeAddress) throws IOException {
         // Split the starting node address into host and port
@@ -141,7 +118,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
         // Implement this!
         // Return true if the 2D#4 network can be contacted
         // Return false if the 2D#4 network can't be contacted
-        this.startingNodeAddress = startingNodeAddress;
+        startingNodeAddres = startingNodeAddress;
         try {
             // First, establish a basic connection with the starting node and perform initial communication
             String nodeName = startingNodeName;
@@ -189,7 +166,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Use the stored startingNodeAddress to find the closest node for the key's hashID
-            String closestNodeAddress = findClosestFullNode(keyHashID, this.startingNodeAddress);
+            String closestNodeAddress = findClosestFullNode(keyHashID, startingNodeAddres);
             if (closestNodeAddress == null) {
                 System.err.println("Failed to find the closest node.");
                 return false;
@@ -242,7 +219,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Then, find the closest node based on the key's hashID. This step may vary depending on how you implement findClosestFullNode.
-            String closestNodeAddress = findClosestFullNode(keyHashID, this.startingNodeAddress);
+            String closestNodeAddress = findClosestFullNode(keyHashID, startingNodeAddres);
             if (closestNodeAddress == null) {
                 System.err.println("Failed to find the closest node.");
                 return null;
@@ -264,7 +241,8 @@ public class TemporaryNode implements TemporaryNodeInterface {
                 out.flush();
 
                 // Send the GET? request for the specified key.
-                out.println("GET? 1"); // Assuming the key is a single line.
+                int linesInKey = key.contains("\n") ? key.split("\n").length : 1; // Adjust based on how you count lines in key
+                out.println("GET? " + linesInKey);
                 out.println(key + "\n"); // Ensure the key ends with a newline.
                 out.flush();
 
