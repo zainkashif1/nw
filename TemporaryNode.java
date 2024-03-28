@@ -12,8 +12,6 @@ import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 // DO NOT EDIT starts
 interface TemporaryNodeInterface {
@@ -26,7 +24,6 @@ interface TemporaryNodeInterface {
 
 public class TemporaryNode implements TemporaryNodeInterface {
 
-    private final Map<String, String> networkMap = new ConcurrentHashMap<>();
     public String startingNodeAddres;
 
     private static String bytesToHex(byte[] hash) {
@@ -170,7 +167,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
         // Return false if the store failed
         try {
             // Ensure the key ends with a newline for consistent hashID computation
-            byte[] keyHashBytes = HashID.computeHashID(key + "\n");
+            byte[] keyHashBytes = HashID.computeHashID(key);
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Use the stored startingNodeAddress to find the closest node for the key's hashID
@@ -223,7 +220,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
     public String get(String key) {
         try {
             // First, compute the hashID of the key.
-            byte[] keyHashBytes = HashID.computeHashID(key + "\n"); // Ensure the key ends with a newline character.
+            byte[] keyHashBytes = HashID.computeHashID(key); // Ensure the key ends with a newline character.
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Then, find the closest node based on the key's hashID. This step may vary depending on how you implement findClosestFullNode.
