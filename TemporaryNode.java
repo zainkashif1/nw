@@ -72,6 +72,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
     public String findClosestFullNode(String targetHashID, String startingNodeAddress) throws IOException {
         // Split the starting node address into host and port
+        // Split the starting node address into host and port
         String[] addressComponents = startingNodeAddress.split(":");
         if (addressComponents.length != 2) {
             throw new IllegalArgumentException("Invalid starting node address format.");
@@ -80,12 +81,11 @@ public class TemporaryNode implements TemporaryNodeInterface {
         int port = Integer.parseInt(addressComponents[1]);
 
         try (Socket socket = new Socket(host, port);
-             OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
             // Send a START message to the starting node
-            outWriter.write("START 1 TemporaryNode\n");
-            outWriter.flush(); // Flush to ensure the message is sent immediately
+            out.println("START 1 TemporaryNode");
 
             // Wait for START acknowledgment
             String startResponse = in.readLine();
@@ -94,35 +94,31 @@ public class TemporaryNode implements TemporaryNodeInterface {
             }
 
             // Send NEAREST? request with the target hashID
-            outWriter.write("NEAREST? " + targetHashID + "\n");
-            outWriter.flush(); // Flush to ensure the message is sent immediately
+            out.println("NEAREST? " + targetHashID);
 
             // Read the NODES response header to get the number of nodes
             String nodesResponse = in.readLine(); // Expecting "NODES <number>"
             if (nodesResponse != null && nodesResponse.startsWith("NODES")) {
                 int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
-                if (numberOfNodes > 0) {
-                    String closestNodeName = "";
-                    String closestNodeAddress = "";
-                    // Iterate over the nodes returned in the response
-                    for (int i = 0; i < numberOfNodes; i++) {
-                        closestNodeName = in.readLine(); // Reads the name of the node
-                        closestNodeAddress = in.readLine(); // Reads the address of the node
-                        // Here, you should check if the node name format is correct.
-                        if (closestNodeName != null && closestNodeName.contains(":")) {
-                            // For simplicity, this takes the first node as the closest, but you could implement additional logic here
-                            return closestNodeAddress; // Returns the address of the closest node
-                        } else {
-                            throw new IOException("Node name does not contain a colon: " + closestNodeName);
+                String closestNodeName = "";
+                String closestNodeAddress = "";
+                for (int i = 0; i < numberOfNodes * 2; i++) { // Multiply by 2 because each node has two lines: name and address
+                    String line = in.readLine();
+                    if (i % 2 == 0) { // Node name lines (even indices)
+                        closestNodeName = line;
+                        if (!closestNodeName.contains(":")) {
+                            throw new IOException("Invalid node name format: " + closestNodeName);
                         }
+                    } else { // Node address lines (odd indices)
+                        closestNodeAddress = line;
+                        return closestNodeAddress; // For simplicity, return the address of the first node
                     }
                 }
-            } else {
-                throw new IOException("Invalid response received: " + nodesResponse);
             }
+
+            // If no nodes are returned or there's an issue with the response, indicate failure to find the closest node
+            throw new IOException("Failed to find the closest full node.");
         }
-        // If the method hasn't returned by now, it means no valid nodes were found
-        throw new IOException("Failed to find the closest full node.");
     }
 
 
