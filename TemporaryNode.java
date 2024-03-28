@@ -93,11 +93,18 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
             // Send NEAREST? request with the target hashID
             out.println("NEAREST? " + targetHashID);
+            System.out.println("Sent NEAREST? request with hashID: " + targetHashID);
 
             // Read the NODES response header to get the number of nodes
             String nodesResponse = in.readLine(); // Expecting "NODES <number>"
+            System.out.println("Received NODES response: " + nodesResponse);
+
             if (nodesResponse != null && nodesResponse.startsWith("NODES")) {
                 int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
+                if (numberOfNodes == 0) {
+                    System.out.println("No nodes returned in response.");
+                    return null;
+                }
                 if (numberOfNodes > 0) {
                     String closestNodeName = "";
                     String closestNodeAddress = "";
@@ -106,11 +113,14 @@ public class TemporaryNode implements TemporaryNodeInterface {
                         closestNodeName = in.readLine(); // Reads the name of the node
                         closestNodeAddress = in.readLine(); // Reads the address of the node
                         // For simplicity, this takes the first node as the closest, but you could implement additional logic here
+                        break;
                     }
                     // Returns the address of the closest node
+                    System.out.println("Closest node found: " + closestNodeName + " at " + closestNodeAddress);
                     return closestNodeAddress;
                 }
             }
+
 
             // If no nodes are returned or there's an issue with the response, indicate failure to find the closest node
             throw new IOException("Failed to find the closest full node.");
@@ -246,7 +256,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
                 // Send the GET? request for the specified key.
                 int linesInKey = key.contains("\n") ? key.split("\n").length : 1; // Adjust based on how you count lines in key
-                out.println("GET? " + linesInKey);
+                out.println("GET? " + linesInKey+ "\n");
                 out.println(key + "\n"); // Ensure the key ends with a newline.
                 out.flush();
 

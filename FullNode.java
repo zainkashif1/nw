@@ -206,7 +206,7 @@ public class FullNode implements FullNodeInterface {
             // Notify the known node about this full node's presence
             // You might need to replace "127.0.0.1" with your actual public IP or a reachable hostname
             // and "this.listeningPort" with the port number your full node listens on for incoming connections
-            String notifyMessage = String.format("NOTIFY?\n%s\n%s:%d\n", startingNodeName, "10.0.0.151", 20000);
+            String notifyMessage = String.format("NOTIFY?\n%s\n%s:%d\n", startingNodeName, "127.0.0.1", 20000);
             out.println(notifyMessage);
             out.flush();
 
