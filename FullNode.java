@@ -194,8 +194,7 @@ public class FullNode implements FullNodeInterface {
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
             // Send START message to the known node
-            String nodeName = "YOUR_FULL_NODE_NAME"; // Use your full node's unique name
-            out.println("START 1 " + nodeName);
+            out.println("START 1 " + startingNodeName);
             String startResponse = in.readLine();
             if (startResponse != null && startResponse.startsWith("START")) {
                 System.out.println("START handshake successful.");
@@ -207,7 +206,7 @@ public class FullNode implements FullNodeInterface {
             // Notify the known node about this full node's presence
             // You might need to replace "127.0.0.1" with your actual public IP or a reachable hostname
             // and "this.listeningPort" with the port number your full node listens on for incoming connections
-            String notifyMessage = String.format("NOTIFY?\n%s\n%s:%d\n", nodeName, "127.0.0.1", 20000);
+            String notifyMessage = String.format("NOTIFY?\n%s\n%s:%d\n", startingNodeName, "10.0.0.151", 20000);
             out.println(notifyMessage);
             out.flush();
 

@@ -79,14 +79,13 @@ public class TemporaryNode implements TemporaryNodeInterface {
         String host = addressComponents[0];
         int port = Integer.parseInt(addressComponents[1]);
 
-        // Initialize the socket and I/O streams within the try-with-resources statement for automatic resource management
         try (Socket socket = new Socket(host, port);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
             // Send a START message to the starting node
             out.println("START 1 TemporaryNode");
-            // Wait for the START acknowledgment
+            // Wait for START acknowledgment
             String startResponse = in.readLine();
             if (startResponse == null || !startResponse.startsWith("START")) {
                 throw new IOException("Failed to start communication with the starting node.");
@@ -100,16 +99,21 @@ public class TemporaryNode implements TemporaryNodeInterface {
             if (nodesResponse != null && nodesResponse.startsWith("NODES")) {
                 int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
                 if (numberOfNodes > 0) {
-                    String closestNodeName = in.readLine(); // Reads the name of the first node, assumed to be the closest
-                    String closestNodeAddress = in.readLine(); // Reads the address of the first node
-                    return closestNodeAddress; // Returns the address of the closest node
+                    String closestNodeName = "";
+                    String closestNodeAddress = "";
+                    // Iterate over the nodes returned in the response
+                    for (int i = 0; i < numberOfNodes; i++) {
+                        closestNodeName = in.readLine(); // Reads the name of the node
+                        closestNodeAddress = in.readLine(); // Reads the address of the node
+                        // For simplicity, this takes the first node as the closest, but you could implement additional logic here
+                    }
+                    // Returns the address of the closest node
+                    return closestNodeAddress;
                 }
             }
 
             // If no nodes are returned or there's an issue with the response, indicate failure to find the closest node
             throw new IOException("Failed to find the closest full node.");
-        } catch (NumberFormatException ex) {
-            throw new IOException("Invalid port number in the starting node address.", ex);
         }
     }
 
