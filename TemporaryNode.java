@@ -272,7 +272,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             }
 
             // Send a GET? request
-            outWriter.write("GET? 2\n" + key + "\n");
+            outWriter.write("GET? 1\n" + key + "\n");
             outWriter.flush();
 
             // Read the response
