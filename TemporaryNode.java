@@ -125,44 +125,46 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
 
     public boolean start(String startingNodeName, String startingNodeAddress) {
-        // Implement this!
-        // Return true if the 2D#4 network can be contacted
-        // Return false if the 2D#4 network can't be contacted
-        startingNodeAddres = startingNodeAddress;
-        startingNodeNam = startingNodeName;
-        try {
-            // First, establish a basic connection with the starting node and perform initial communication
-            String nodeName = startingNodeName;
-            try (Socket socket = new Socket(startingNodeAddress.split(":")[0], Integer.parseInt(startingNodeAddress.split(":")[1]));
-                 PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
-                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+        this.startingNodeAddres = startingNodeAddress;
+        this.startingNodeNam = startingNodeName;
 
-                // Send START message including the highest protocol version supported and the temporary node's name
-                out.println("START 1 zain.kashif@city.ac.uk:idk-1");
-                out.flush();
+        // Splitting address into host and port for socket creation
+        String[] addressComponents = startingNodeAddress.split(":");
+        if (addressComponents.length != 2) {
+            System.err.println("Invalid starting node address format.");
+            return false;
+        }
+        String host = addressComponents[0];
+        int port = Integer.parseInt(addressComponents[1]);
 
-                // Await and validate the acknowledgment from the starting node
-                String response = in.readLine();
-                if (response == null || !response.startsWith("START")) {
-                    System.err.println("Failed to receive valid START acknowledgment.");
-                    return false;
-                }
+        try (Socket socket = new Socket(host, port);
+             OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-                // Optionally, use findClosestFullNode method to find and communicate with the closest node
-                // For initial start, this might not be necessary unless you're performing operations that require the closest node immediately
-                // String closestNodeAddress = findClosestFullNode(someHashID, startingNodeAddress);
-                // if (closestNodeAddress == null) {
-                //     System.err.println("Failed to find the closest node.");
-                //     return false;
-                // }
+            // Send START message including the highest protocol version supported and the temporary node's name
+            outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
+            outWriter.flush();
 
-                // At this point, the temporary node is considered successfully started
-                // Further operations can be performed as needed
-                return true;
+            // Await and validate the acknowledgment from the starting node
+            String response = in.readLine();
+            if (response == null || !response.startsWith("START")) {
+                System.err.println("Failed to receive valid START acknowledgment.");
+                return false;
             }
-        } catch (Exception e) {
+
+            // Optionally, use findClosestFullNode method to find and communicate with the closest node
+            // For initial start, this might not be necessary unless you're performing operations that require the closest node immediately
+            // String closestNodeAddress = findClosestFullNode(someHashID, startingNodeAddress);
+            // if (closestNodeAddress == null) {
+            //     System.err.println("Failed to find the closest node.");
+            //     return false;
+            // }
+
+            // At this point, the temporary node is considered successfully started
+            // Further operations can be performed as needed
+            return true;
+        } catch (IOException e) {
             System.err.println("An error occurred while trying to start communication with the network: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }
@@ -225,12 +227,12 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
     public String get(String key) {
         try {
-            // First, compute the hashID of the key.
-            byte[] keyHashBytes = HashID.computeHashID(key); // Ensure the key ends with a newline character.
+            // Compute the hashID of the key.
+            byte[] keyHashBytes = HashID.computeHashID(key + "\n"); // Ensuring key ends with newline character.
             String keyHashID = bytesToHex(keyHashBytes);
 
-            // Then, find the closest node based on the key's hashID. This step may vary depending on how you implement findClosestFullNode.
-            String closestNodeAddress = findClosestFullNode(keyHashID, startingNodeAddres,startingNodeNam);
+            // Find the closest full node based on the key's hashID.
+            String closestNodeAddress = findClosestFullNode(keyHashID, startingNodeAddres, startingNodeNam);
             if (closestNodeAddress == null) {
                 System.err.println("Failed to find the closest node.");
                 return null;
@@ -244,18 +246,17 @@ public class TemporaryNode implements TemporaryNodeInterface {
             }
 
             try (Socket socket = new Socket(addressParts[0], Integer.parseInt(addressParts[1]));
-                 PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
+                 OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message to the closest node.
-                out.println("START 1 zain.kashif@city.ac.uk:idk-1"); // Here, "TemporaryNode" could be replaced with a more descriptive name if necessary.
-                out.flush();
+                outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
+                outWriter.flush();
 
                 // Send the GET? request for the specified key.
-                int linesInKey = key.contains("\n") ? key.split("\n").length : 1; // Adjust based on how you count lines in key
-                out.println("GET? " + linesInKey);
-                out.println(key); // Ensure the key ends with a newline.
-                out.flush();
+                int linesInKey = key.endsWith("\n") ? key.split("\n").length : 1; // Adjust based on the actual key
+                outWriter.write("GET? " + linesInKey + "\n" + key); // Key already ends with a newline.
+                outWriter.flush();
 
                 // Read and process the response from the closest node.
                 String responseHeader = in.readLine();
@@ -268,14 +269,15 @@ public class TemporaryNode implements TemporaryNodeInterface {
                             valueBuilder.append("\n");
                         }
                     }
+                    // Always send an END message to cleanly terminate the protocol interaction.
+                    outWriter.write("END Successful retrieval\n");
+                    outWriter.flush();
                     return valueBuilder.toString();
                 } else if ("NOPE".equals(responseHeader)) {
+                    outWriter.write("END Key not found\n");
+                    outWriter.flush();
                     return null; // Key not found in the network.
                 }
-
-                // Always send an END message to cleanly terminate the protocol interaction.
-                out.println("END Successful retrieval");
-                out.flush();
             }
         } catch (Exception e) {
             System.err.println("An error occurred during the GET operation: " + e.getMessage());
