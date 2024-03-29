@@ -68,7 +68,6 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
 
     public String findClosestFullNode(String targetHashID, String startingNodeAddress) throws IOException {
-        // Split the starting node address into IP and port
         String[] addressComponents = startingNodeAddress.split(":");
         if (addressComponents.length != 2) {
             throw new IllegalArgumentException("Invalid starting node address format.");
@@ -80,43 +79,65 @@ public class TemporaryNode implements TemporaryNodeInterface {
              OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            // Send START message to begin communication
             outWriter.write("START 1 TemporaryNode\n");
             outWriter.flush();
 
-            // Await START acknowledgment
+            // Enhanced logging for debugging
+            System.out.println("Sent START message to the node.");
+
             String startResponse = in.readLine();
-            if (startResponse == null || !startResponse.startsWith("START")) {
-                throw new IOException("Failed to start communication with the starting node.");
+            if (startResponse == null) {
+                throw new IOException("No response after START message.");
+            } else if (!startResponse.startsWith("START")) {
+                throw new IOException("Invalid response after START message: " + startResponse);
             }
 
-            // Send NEAREST? request with the target hashID
+            // Enhanced logging for debugging
+            System.out.println("Received START acknowledgment: " + startResponse);
+
             outWriter.write("NEAREST? " + targetHashID + "\n");
             outWriter.flush();
 
-            // Process NODES response
-            String line;
-            while ((line = in.readLine()) != null && !line.startsWith("END")) {
-                if (line.startsWith("NODES")) {
-                    int numberOfNodes = Integer.parseInt(line.split(" ")[1]);
-                    if (numberOfNodes == 0) {
-                        continue; // No nodes returned, continue to process next lines
-                    }
-                    for (int i = 0; i < numberOfNodes; i++) {
-                        String nodeName = in.readLine();
-                        String nodeAddress = in.readLine();
-                        if (nodeName != null && nodeName.contains(":") && nodeAddress != null) {
-                            return nodeAddress; // Return the address of the first valid node
-                        }
-                    }
+            // Enhanced logging for debugging
+            System.out.println("Sent NEAREST? request with hashID: " + targetHashID);
+
+            String nodesResponse = in.readLine();
+            if (nodesResponse == null) {
+                throw new IOException("No NODES response received.");
+            } else if (!nodesResponse.startsWith("NODES")) {
+                if (nodesResponse.startsWith("END")) {
+                    throw new IOException("Received END message before finding a node: " + nodesResponse);
+                } else {
+                    throw new IOException("Invalid NODES response: " + nodesResponse);
                 }
             }
 
-            // If END message is received or no valid nodes are found
-            if (line != null && line.startsWith("END")) {
-                throw new IOException("Received END message before finding a node: " + line);
+            // Enhanced logging for debugging
+            System.out.println("Received NODES response: " + nodesResponse);
+
+            int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
+            if (numberOfNodes <= 0) {
+                throw new IOException("NODES response indicates no nodes available.");
             }
-            throw new IOException("Failed to find the closest full node or invalid response format.");
+
+            for (int i = 0; i < numberOfNodes; i++) {
+                String nodeName = in.readLine();
+                String nodeAddress = in.readLine();
+
+                if (nodeName == null || nodeAddress == null) {
+                    throw new IOException("Node name or address is missing in the NODES response.");
+                }
+
+                // Enhanced logging for debugging
+                System.out.println("Node name: " + nodeName);
+                System.out.println("Node address: " + nodeAddress);
+
+                return nodeAddress; // Returns the address of the first closest node for simplicity
+            }
+
+            throw new IOException("Failed to parse NODES response correctly.");
+        } catch (NumberFormatException ex) {
+            throw new IOException("Port number format error: " + startingNodeAddress, ex);
         }
     }
 
