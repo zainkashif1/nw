@@ -102,6 +102,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             System.out.println("Sent NEAREST? request with hashID: " + targetHashID);
 
             String nodesResponse = in.readLine();
+            System.out.println("Received NODES response: " + nodesResponse);
             if (nodesResponse == null) {
                 throw new IOException("No NODES response received.");
             } else if (!nodesResponse.startsWith("NODES")) {
