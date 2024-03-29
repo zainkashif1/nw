@@ -11,7 +11,6 @@ import java.io.*;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -266,13 +265,9 @@ public class TemporaryNode implements TemporaryNodeInterface {
             outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
             outWriter.flush();
 
-            String startResponse = in.readLine();
-            if (startResponse == null || !startResponse.startsWith("START")) {
-                throw new IOException("Failed to start communication with the starting node.");
-            }
-
             // Send a GET? request
-            outWriter.write("GET? 1\n" + key + "\n");
+            int numberOfLinesForKey = key.split("\n").length; // Count the number of lines, assuming the key contains a newline character
+            outWriter.write("GET? " + numberOfLinesForKey + "\n" + key); // No need to append an additional newline character
             outWriter.flush();
 
             // Read the response
