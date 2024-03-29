@@ -79,42 +79,28 @@ public class TemporaryNode implements TemporaryNodeInterface {
              OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            outWriter.write("START 1 TemporaryNode");
+            outWriter.write("START 1 TemporaryNode\n");
             outWriter.flush();
-
-            // Enhanced logging for debugging
-            System.out.println("Sent START message to the node.");
 
             String startResponse = in.readLine();
-            if (startResponse == null) {
-                throw new IOException("No response after START message.");
-            } else if (!startResponse.startsWith("START")) {
-                throw new IOException("Invalid response after START message: " + startResponse);
+            if (startResponse == null || !startResponse.startsWith("START")) {
+                throw new IOException("Failed to start communication with the starting node.");
             }
 
-            // Enhanced logging for debugging
-            System.out.println("Received START acknowledgment: " + startResponse);
-
-            outWriter.write("NEAREST? " + targetHashID);
+            outWriter.write("NEAREST? " + targetHashID + "\n");
             outWriter.flush();
 
-            // Enhanced logging for debugging
-            System.out.println("Sent NEAREST? request with hashID: " + targetHashID);
-
             String nodesResponse = in.readLine();
-            System.out.println("Received NODES response: " + nodesResponse);
             if (nodesResponse == null) {
                 throw new IOException("No NODES response received.");
             } else if (!nodesResponse.startsWith("NODES")) {
                 if (nodesResponse.startsWith("END")) {
-                    throw new IOException("Received END message before finding a node: " + nodesResponse);
+                    // Specific handling for END message
+                    return handleEndMessage(in);
                 } else {
                     throw new IOException("Invalid NODES response: " + nodesResponse);
                 }
             }
-
-            // Enhanced logging for debugging
-            System.out.println("Received NODES response: " + nodesResponse);
 
             int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
             if (numberOfNodes <= 0) {
@@ -124,16 +110,12 @@ public class TemporaryNode implements TemporaryNodeInterface {
             for (int i = 0; i < numberOfNodes; i++) {
                 String nodeName = in.readLine();
                 String nodeAddress = in.readLine();
-
                 if (nodeName == null || nodeAddress == null) {
                     throw new IOException("Node name or address is missing in the NODES response.");
                 }
 
-                // Enhanced logging for debugging
-                System.out.println("Node name: " + nodeName);
-                System.out.println("Node address: " + nodeAddress);
-
-                return nodeAddress; // Returns the address of the first closest node for simplicity
+                // Assuming the first node is the closest for simplicity
+                return nodeAddress;
             }
 
             throw new IOException("Failed to parse NODES response correctly.");
@@ -141,6 +123,12 @@ public class TemporaryNode implements TemporaryNodeInterface {
             throw new IOException("Port number format error: " + startingNodeAddress, ex);
         }
     }
+
+    private String handleEndMessage(BufferedReader in) throws IOException {
+        String reason = in.readLine(); // Assuming the reason for END is provided in the next line
+        throw new IOException("Received END message with reason: " + reason);
+    }
+
 
 
 
@@ -158,7 +146,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message including the highest protocol version supported and the temporary node's name
-                out.println("START 1 " + nodeName+"\n");
+                out.println("START 1 " + "temp"+"\n");
                 out.flush();
 
                 // Await and validate the acknowledgment from the starting node
