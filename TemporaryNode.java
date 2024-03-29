@@ -222,6 +222,11 @@ public class TemporaryNode implements TemporaryNodeInterface {
             outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
             outWriter.flush();
 
+            String startResponse = in.readLine();
+            if (startResponse == null || !startResponse.startsWith("START")) {
+                throw new IOException("Failed to start communication with the starting node.");
+            }
+
             // Send a PUT? request
             outWriter.write("PUT? 1 1\n" + key + "\n" + value + "\n");
             outWriter.flush();
@@ -260,6 +265,11 @@ public class TemporaryNode implements TemporaryNodeInterface {
             // Send a START message
             outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
             outWriter.flush();
+
+            String startResponse = in.readLine();
+            if (startResponse == null || !startResponse.startsWith("START")) {
+                throw new IOException("Failed to start communication with the starting node.");
+            }
 
             // Send a GET? request
             outWriter.write("GET? 1\n" + key + "\n");
