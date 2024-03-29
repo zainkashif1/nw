@@ -95,7 +95,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             // Enhanced logging for debugging
             System.out.println("Received START acknowledgment: " + startResponse);
 
-            outWriter.write("NEAREST? " + targetHashID);
+            outWriter.write("NEAREST? " + targetHashID + "\n");
             outWriter.flush();
 
             // Enhanced logging for debugging
