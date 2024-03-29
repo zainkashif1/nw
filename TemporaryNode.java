@@ -79,7 +79,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
              OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            outWriter.write("START 1 TemporaryNode\n");
+            outWriter.write("START 1 TemporaryNode");
             outWriter.flush();
 
             // Enhanced logging for debugging
@@ -95,7 +95,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             // Enhanced logging for debugging
             System.out.println("Received START acknowledgment: " + startResponse);
 
-            outWriter.write("NEAREST? " + targetHashID + "\n");
+            outWriter.write("NEAREST? " + targetHashID);
             outWriter.flush();
 
             // Enhanced logging for debugging
