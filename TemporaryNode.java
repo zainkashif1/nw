@@ -77,12 +77,12 @@ public class TemporaryNode implements TemporaryNodeInterface {
         int port = Integer.parseInt(addressComponents[1]);
 
         try (Socket socket = new Socket(host, port);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
             // Send START message to begin communication
-            out.println("START 1 TemporaryNode");
-            out.flush(); // Ensure the message is sent immediately
+            outWriter.write("START 1 TemporaryNode\n");
+            outWriter.flush();
 
             // Await START acknowledgment
             String startResponse = in.readLine();
@@ -91,33 +91,30 @@ public class TemporaryNode implements TemporaryNodeInterface {
             }
 
             // Send NEAREST? request with the target hashID
-            System.out.println(targetHashID);
-            out.println("NEAREST? " + targetHashID);
-            out.flush(); // Ensure the message is sent immediately
-            socket.close();
+            outWriter.write("NEAREST? " + targetHashID + "\n");
+            outWriter.flush();
 
             // Process NODES response
-            String nodesResponse = in.readLine(); // Expecting "NODES <number>"
-            System.out.println(nodesResponse);
-
-            if (nodesResponse != null && nodesResponse.startsWith("NODES")) {
-                int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
-                if (numberOfNodes > 0) {
-                    // Iterate through the list of nodes returned in the response
-                    for (int i = 0; i < numberOfNodes; i++) {
-                        String nodeName = in.readLine(); // Node name line
-                        String nodeAddress = in.readLine(); // Node address line
-                        if (nodeName != null && nodeAddress != null) {
-                            socket.close();
-                            // For this example, we assume the first node is the closest
-                            // You could implement additional logic here to choose the closest based on your criteria
-                            return nodeAddress; // Return the address of the first closest node
+            String nodesResponse;
+            while (!(nodesResponse = in.readLine()).startsWith("END")) {
+                System.out.println(nodesResponse);
+                if (nodesResponse.startsWith("NODES")) {
+                    int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
+                    if (numberOfNodes > 0) {
+                        for (int i = 0; i < numberOfNodes; i++) {
+                            String nodeName = in.readLine(); // Read node name
+                            String nodeAddress = in.readLine(); // Read node address
+                            // Assuming the first node address is the closest for simplicity
+                            if (nodeName != null && nodeAddress != null) {
+                                return nodeAddress;
+                            }
                         }
                     }
                 }
             }
 
-            // If no nodes are returned or there is an error in the response, indicate failure
+            // If END message is received without finding nodes
+            System.out.println("Received END message: " + nodesResponse);
             throw new IOException("Failed to find the closest full node or invalid response format.");
         }
     }
@@ -225,7 +222,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
     public String get(String key) {
         try {
             // First, compute the hashID of the key.
-            byte[] keyHashBytes = HashID.computeHashID(key + "\n"); // Ensure the key ends with a newline character.
+            byte[] keyHashBytes = HashID.computeHashID(key); // Ensure the key ends with a newline character.
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Then, find the closest node based on the key's hashID. This step may vary depending on how you implement findClosestFullNode.
