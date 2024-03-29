@@ -79,7 +79,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
              OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            outWriter.write("START 1 TemporaryNode");
+            outWriter.write("START 1 TemporaryNode\n");
             outWriter.flush();
 
             // Enhanced logging for debugging
@@ -158,7 +158,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message including the highest protocol version supported and the temporary node's name
-                out.println("START 1 " + nodeName);
+                out.println("START 1 " + nodeName+"\n");
                 out.flush();
 
                 // Await and validate the acknowledgment from the starting node
@@ -215,13 +215,13 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message to the closest node
-                out.println("START 1 TemporaryNode"); // Here "TemporaryNode" could be more descriptive if necessary
+                out.println("START 1 TemporaryNode\n"); // Here "TemporaryNode" could be more descriptive if necessary
                 out.flush();
 
                 // Send the PUT? request with the key and value
                 out.println("PUT? 1 1"); // Assuming the key and value are each considered one line
                 out.println(key + "\n");
-                out.println(value);
+                out.println(value+"\n");
                 out.flush();
 
                 // Read and process the response from the closest node
@@ -268,7 +268,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message to the closest node.
-                out.println("START 1 TemporaryNode"); // Here, "TemporaryNode" could be replaced with a more descriptive name if necessary.
+                out.println("START 1 TemporaryNode\n"); // Here, "TemporaryNode" could be replaced with a more descriptive name if necessary.
                 out.flush();
 
                 // Send the GET? request for the specified key.
@@ -294,7 +294,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                 }
 
                 // Always send an END message to cleanly terminate the protocol interaction.
-                out.println("END Successful retrieval");
+                out.println("END Successful retrieval\n");
                 out.flush();
             }
         } catch (Exception e) {
