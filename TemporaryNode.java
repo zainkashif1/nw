@@ -235,12 +235,12 @@ public class TemporaryNode implements TemporaryNodeInterface {
             String response = in.readLine();
             if ("SUCCESS".equals(response)) {
                 // Send an END message
-                outWriter.write("END Successful storage\n");
+                outWriter.write("END Successful_storage\n");
                 outWriter.flush();
                 return true;  // Storage was successful on this node
             } else if ("FAILED".equals(response)) {
                 // Send an END message
-                outWriter.write("END Storage failed\n");
+                outWriter.write("END Storage_failed\n");
                 outWriter.flush();
                 return false;  // Node refused to store the value
             }
@@ -272,7 +272,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             }
 
             // Send a GET? request
-            outWriter.write("GET? 1\n" + key + "\n");
+            outWriter.write("GET? 2\n" + key + "\n");
             outWriter.flush();
 
             // Read the response
@@ -288,12 +288,12 @@ public class TemporaryNode implements TemporaryNodeInterface {
                 }
 
                 // Send an END message
-                outWriter.write("END Successful retrieval\n");
+                outWriter.write("END Successful_retrieval\n");
                 outWriter.flush();
                 return value.toString();
             } else if ("NOPE".equals(response)) {
                 // Send an END message
-                outWriter.write("END Key not found\n");
+                outWriter.write("END Key_not_found\n");
                 outWriter.flush();
                 return null;  // Key not found at this node
             }
