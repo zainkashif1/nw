@@ -39,16 +39,6 @@ public class TemporaryNode implements TemporaryNodeInterface {
         return hexString.toString();
     }
 
-    private String computeHashIDString(String input) throws NoSuchAlgorithmException {
-        byte[] hash = new byte[0]; // Appending newline to comply with your HashID requirements
-        try {
-            hash = HashID.computeHashID(input + "\n");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return bytesToHex(hash);
-    }
-
     // Method to calculate the distance between two hashIDs as per 2D#4
     private int calculateDistance(String hashID1, String hashID2) {
         // Convert hashID strings to BigInteger for bitwise operations
@@ -148,7 +138,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message including the highest protocol version supported and the temporary node's name
-                out.println("START 1 " + "zain.kashif@city.ac.uk:idk-1"+"\n");
+                out.println("START 1 zain.kashif@city.ac.uk:idk-1");
                 out.flush();
 
                 // Await and validate the acknowledgment from the starting node
@@ -205,13 +195,13 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message to the closest node
-                out.println("START 1 zain.kashif@city.ac.uk:idk:1\n"); // Here "TemporaryNode" could be more descriptive if necessary
+                out.println("START 1 zain.kashif@city.ac.uk:idk:1"); // Here "TemporaryNode" could be more descriptive if necessary
                 out.flush();
 
                 // Send the PUT? request with the key and value
                 out.println("PUT? 1 1"); // Assuming the key and value are each considered one line
-                out.println(key + "\n");
-                out.println(value+"\n");
+                out.println(key);
+                out.println(value);
                 out.flush();
 
                 // Read and process the response from the closest node
@@ -258,13 +248,13 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message to the closest node.
-                out.println("START 1 zain.kashif@city.ac.uk:idk-1\n"); // Here, "TemporaryNode" could be replaced with a more descriptive name if necessary.
+                out.println("START 1 zain.kashif@city.ac.uk:idk-1"); // Here, "TemporaryNode" could be replaced with a more descriptive name if necessary.
                 out.flush();
 
                 // Send the GET? request for the specified key.
                 int linesInKey = key.contains("\n") ? key.split("\n").length : 1; // Adjust based on how you count lines in key
-                out.println("GET? " + linesInKey+ "\n");
-                out.println(key + "\n"); // Ensure the key ends with a newline.
+                out.println("GET? " + linesInKey);
+                out.println(key); // Ensure the key ends with a newline.
                 out.flush();
 
                 // Read and process the response from the closest node.
@@ -284,7 +274,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                 }
 
                 // Always send an END message to cleanly terminate the protocol interaction.
-                out.println("END Successful retrieval\n");
+                out.println("END Successful retrieval");
                 out.flush();
             }
         } catch (Exception e) {
