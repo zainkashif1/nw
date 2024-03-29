@@ -179,7 +179,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
     public boolean store(String key, String value) {
         try {
             // Ensure the key ends with a newline for consistent hashID computation
-            byte[] keyHashBytes = HashID.computeHashID(key + "\n");
+            byte[] keyHashBytes = HashID.computeHashID(key);
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Use the stored startingNodeAddress to find the closest nodes for the key's hashID
@@ -298,7 +298,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
     public String get(String key) {
         try {
             // Compute the hashID of the key
-            byte[] keyHashBytes = HashID.computeHashID(key + "\n");  // Ensuring key ends with newline character
+            byte[] keyHashBytes = HashID.computeHashID(key);  // Ensuring key ends with newline character
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Find the closest full node(s) based on the key's hashID
