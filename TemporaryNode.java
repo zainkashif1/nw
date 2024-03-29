@@ -118,7 +118,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             if (nodeAddresses.isEmpty()) {
                 throw new IOException("No nodes were found in the NODES response.");
             }
-
+            System.out.println(nodeAddresses);
             return nodeAddresses;
 
 
