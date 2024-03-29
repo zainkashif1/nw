@@ -25,6 +25,7 @@ interface TemporaryNodeInterface {
 public class TemporaryNode implements TemporaryNodeInterface {
 
     public String startingNodeAddres;
+    public String startingNodeNam;
 
     private static String bytesToHex(byte[] hash) {
         StringBuilder hexString = new StringBuilder(2 * hash.length);
@@ -67,7 +68,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
     }
 
 
-    public String findClosestFullNode(String targetHashID, String startingNodeAddress) throws IOException {
+    public String findClosestFullNode(String targetHashID, String startingNodeAddress, String startingNodeName) throws IOException {
         String[] addressComponents = startingNodeAddress.split(":");
         if (addressComponents.length != 2) {
             throw new IllegalArgumentException("Invalid starting node address format.");
@@ -79,7 +80,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
              OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            outWriter.write("START 1 TemporaryNode\n");
+            outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
             outWriter.flush();
 
             String startResponse = in.readLine();
@@ -138,6 +139,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
         // Return true if the 2D#4 network can be contacted
         // Return false if the 2D#4 network can't be contacted
         startingNodeAddres = startingNodeAddress;
+        startingNodeNam = startingNodeName;
         try {
             // First, establish a basic connection with the starting node and perform initial communication
             String nodeName = startingNodeName;
@@ -146,7 +148,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message including the highest protocol version supported and the temporary node's name
-                out.println("START 1 " + "temp"+"\n");
+                out.println("START 1 " + "zain.kashif@city.ac.uk:idk-1"+"\n");
                 out.flush();
 
                 // Await and validate the acknowledgment from the starting node
@@ -185,7 +187,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Use the stored startingNodeAddress to find the closest node for the key's hashID
-            String closestNodeAddress = findClosestFullNode(keyHashID, startingNodeAddres);
+            String closestNodeAddress = findClosestFullNode(keyHashID, startingNodeAddres,startingNodeNam);
             if (closestNodeAddress == null) {
                 System.err.println("Failed to find the closest node.");
                 return false;
@@ -203,7 +205,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message to the closest node
-                out.println("START 1 TemporaryNode\n"); // Here "TemporaryNode" could be more descriptive if necessary
+                out.println("START 1 zain.kashif@city.ac.uk:idk:1\n"); // Here "TemporaryNode" could be more descriptive if necessary
                 out.flush();
 
                 // Send the PUT? request with the key and value
@@ -238,7 +240,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             String keyHashID = bytesToHex(keyHashBytes);
 
             // Then, find the closest node based on the key's hashID. This step may vary depending on how you implement findClosestFullNode.
-            String closestNodeAddress = findClosestFullNode(keyHashID, startingNodeAddres);
+            String closestNodeAddress = findClosestFullNode(keyHashID, startingNodeAddres,startingNodeNam);
             if (closestNodeAddress == null) {
                 System.err.println("Failed to find the closest node.");
                 return null;
@@ -256,7 +258,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send START message to the closest node.
-                out.println("START 1 TemporaryNode\n"); // Here, "TemporaryNode" could be replaced with a more descriptive name if necessary.
+                out.println("START 1 zain.kashif@city.ac.uk:idk-1\n"); // Here, "TemporaryNode" could be replaced with a more descriptive name if necessary.
                 out.flush();
 
                 // Send the GET? request for the specified key.
