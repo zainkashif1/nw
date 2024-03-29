@@ -95,29 +95,31 @@ public class TemporaryNode implements TemporaryNodeInterface {
             outWriter.flush();
 
             // Process NODES response
-            String nodesResponse;
-            while (!(nodesResponse = in.readLine()).startsWith("END")) {
-                System.out.println(nodesResponse);
-                if (nodesResponse.startsWith("NODES")) {
-                    int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
-                    if (numberOfNodes > 0) {
-                        for (int i = 0; i < numberOfNodes; i++) {
-                            String nodeName = in.readLine(); // Read node name
-                            String nodeAddress = in.readLine(); // Read node address
-                            // Assuming the first node address is the closest for simplicity
-                            if (nodeName != null && nodeAddress != null) {
-                                return nodeAddress;
-                            }
+            String line;
+            while ((line = in.readLine()) != null && !line.startsWith("END")) {
+                if (line.startsWith("NODES")) {
+                    int numberOfNodes = Integer.parseInt(line.split(" ")[1]);
+                    if (numberOfNodes == 0) {
+                        continue; // No nodes returned, continue to process next lines
+                    }
+                    for (int i = 0; i < numberOfNodes; i++) {
+                        String nodeName = in.readLine();
+                        String nodeAddress = in.readLine();
+                        if (nodeName != null && nodeName.contains(":") && nodeAddress != null) {
+                            return nodeAddress; // Return the address of the first valid node
                         }
                     }
                 }
             }
 
-            // If END message is received without finding nodes
-            System.out.println("Received END message: " + nodesResponse);
+            // If END message is received or no valid nodes are found
+            if (line != null && line.startsWith("END")) {
+                throw new IOException("Received END message before finding a node: " + line);
+            }
             throw new IOException("Failed to find the closest full node or invalid response format.");
         }
     }
+
 
 
 
