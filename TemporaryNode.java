@@ -267,11 +267,15 @@ public class TemporaryNode implements TemporaryNodeInterface {
             outWriter.flush();
 
             // Send a GET? request
-            outWriter.write("GET? 1\n" + key + "\n");
+            int numberOfLines = key.split("\\n").length; // Subtract 1 because the last split element is after the final newline
+
+            // Send a GET? request with the correct number of lines
+            outWriter.write(String.format("GET? %d\n%s", numberOfLines, key));
             outWriter.flush();
 
             // Read the response
             String response = in.readLine();
+            System.out.println("Response is: " + response);
             if (response != null && response.startsWith("VALUE")) {
                 int count = Integer.parseInt(response.split(" ")[1]);
                 StringBuilder value = new StringBuilder();
@@ -281,7 +285,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                         value.append("\n");
                     }
                 }
-                System.out.println(value.toString());
+                System.out.println("Value is: "+value.toString());
 
                 // Optional: Send an END message to terminate the connection
                 outWriter.write("END Successful_retrieval\n");
