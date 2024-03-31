@@ -2,12 +2,13 @@
 // Coursework 2023/2024
 //
 // Submission by
-// YOUR_NAME_GOES_HERE
-// YOUR_STUDENT_ID_NUMBER_GOES_HERE
-// YOUR_EMAIL_GOES_HERE
+// Zain Kashif
+// 2200010501
+// zain.kashif@city.ac.uk
 
 
 import java.io.*;
+import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,34 @@ interface FullNodeInterface {
 public class FullNode implements FullNodeInterface {
     private final Map<String, String> kvStorage = new ConcurrentHashMap<>();
     private final Map<String, String> networkMap = new ConcurrentHashMap<>();
+    private int calculateDistance(String hashID1, String hashID2) {
+        // Convert hashID strings to BigInteger for bitwise operations
+        BigInteger id1 = new BigInteger(hashID1, 16);
+        BigInteger id2 = new BigInteger(hashID2, 16);
+
+        // Perform bitwise XOR to find differing bits
+        BigInteger xorResult = id1.xor(id2);
+
+        // Count the number of leading zeros in the XOR result
+        // BigInteger does not have a built-in method to count leading zeros
+        // Convert to binary string and count leading zeros
+        String xorBinStr = xorResult.toString(2);
+        int distance = 256 - xorBinStr.length(); // Since xorResult is up to 256 bits
+
+        return distance; // This represents the number of leading matching bits, thus the distance
+    }
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+
 
 
     public boolean listen(String ipAddress, int portNumber) {
@@ -57,7 +86,7 @@ public class FullNode implements FullNodeInterface {
     }
     private void handleConnection(Socket clientSocket) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+             OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8)) {
 
             String requestLine = in.readLine(); // Reads the first line of the request
 
@@ -69,7 +98,8 @@ public class FullNode implements FullNodeInterface {
 
                 switch (command) {
                     case "START":
-                        out.println("START 1 dontknow");
+                        out.write("START 1 dontknow");
+                        out.flush();
                         break;
                     case "GET?":
                         // Assume additional lines follow based on the protocol for GET? request
@@ -96,7 +126,9 @@ public class FullNode implements FullNodeInterface {
                         break;
                     default:
                         // Handle unknown command
-                        out.println("ERROR Unknown command");
+                        out.write("END_unknown_command");
+                        out.flush();
+                        networkMap.remove(requestParts[0]);
                         break;
                 }
                 requestLine = in.readLine(); // Prepare for the next command
@@ -112,7 +144,7 @@ public class FullNode implements FullNodeInterface {
         }
     }
 
-    private void handleGetRequestLogic(BufferedReader in, PrintWriter out, String[] requestParts) throws IOException {
+    private void handleGetRequestLogic(BufferedReader in, OutputStreamWriter out, String[] requestParts) throws IOException {
         int keyLines = Integer.parseInt(requestParts[1]);
         StringBuilder keyBuilder = new StringBuilder();
         for (int i = 0; i < keyLines; i++) {
@@ -122,7 +154,7 @@ public class FullNode implements FullNodeInterface {
         handleGetRequest(out, keyBuilder.toString());
     }
 
-    private void handlePutRequestLogic(BufferedReader in, PrintWriter out, String[] requestParts) throws IOException {
+    private void handlePutRequestLogic(BufferedReader in, OutputStreamWriter out, String[] requestParts) throws IOException {
         int keyLines = Integer.parseInt(requestParts[1]);
         int valueLines = Integer.parseInt(requestParts[2]);
         StringBuilder keyBuilder = new StringBuilder();
@@ -136,37 +168,41 @@ public class FullNode implements FullNodeInterface {
         handlePutRequest(out, keyBuilder.toString(), valueBuilder.toString());
     }
 
-    private void handleGetRequest(PrintWriter out, String key) {
+    private void handleGetRequest(OutputStreamWriter out, String key) throws IOException {
         String value = kvStorage.get(key);
         if (value != null) {
-            out.println("VALUE 1");
-            out.println(value);
+            // Split the value by new lines to accurately report the number of lines
+            String[] valueLines = value.split("\n", -1);  // The -1 limit parameter makes it include empty trailing strings
+            out.write("VALUE " + valueLines.length + "\n");
+            for (String line : valueLines) {
+                out.write(line + "\n");
+            }
         } else {
-            out.println("NOPE");
+            out.write("NOPE\n");
         }
-        out.flush();
+        out.flush();  // Ensure to flush after handling both cases
     }
 
-    private void handlePutRequest(PrintWriter out, String key, String value) {
+    private void handlePutRequest(OutputStreamWriter out, String key, String value) throws IOException {
         kvStorage.put(key, value);
-        out.println("SUCCESS");
+        out.write("SUCCESS");
         out.flush();
     }
-    private void handleNotifyRequest(PrintWriter out, String nodeName, String nodeAddress) {
+    private void handleNotifyRequest(OutputStreamWriter out, String nodeName, String nodeAddress) throws IOException{
         // Add or update the node information in the network map
         networkMap.put(nodeName, nodeAddress);
-        out.println("NOTIFIED");
+        out.write("NOTIFIED");
         out.flush();
     }
 
     // Method to handle ECHO? requests
-    private void handleEchoRequest(PrintWriter out) {
-        out.println("OHCE");
-        out.flush();
+    private void handleEchoRequest(OutputStreamWriter out) throws IOException{
+            out.write("OHCE");
+            out.flush();
     }
 
     // Method to handle NEAREST? requests
-    private void handleNearestRequest(PrintWriter out, String hashID) {
+    private void handleNearestRequest(OutputStreamWriter out, String hashID) throws IOException {
         // Simplified example: Return up to 3 closest nodes from the network map
         // In a real implementation, you'd calculate distances based on hashIDs
         // For simplicity, we'll just return the first three nodes (or fewer, if not enough nodes are known)
@@ -178,7 +214,7 @@ public class FullNode implements FullNodeInterface {
             nodesReturned++;
         }
         response.insert(6, nodesReturned); // Insert the count of nodes at the correct position
-        out.println(response.toString().trim()); // Remove the last newline
+        out.write(response.toString().trim()); // Remove the last newline
         out.flush();
     }
 
@@ -189,12 +225,13 @@ public class FullNode implements FullNodeInterface {
         int port = Integer.parseInt(addressParts[1]);
 
         try (Socket socket = new Socket(ip, port);
-             OutputStream os = socket.getOutputStream();
-             PrintWriter out = new PrintWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8), true);
+             OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
             // Send START message to the known node
-            out.println("START 1 " + startingNodeName);
+            outWriter.write("START 1 " + startingNodeName + "\n");
+            outWriter.flush();
+
             String startResponse = in.readLine();
             if (startResponse != null && startResponse.startsWith("START")) {
                 System.out.println("START handshake successful.");
@@ -204,11 +241,9 @@ public class FullNode implements FullNodeInterface {
             }
 
             // Notify the known node about this full node's presence
-            // You might need to replace "127.0.0.1" with your actual public IP or a reachable hostname
-            // and "this.listeningPort" with the port number your full node listens on for incoming connections
-            String notifyMessage = String.format("NOTIFY?\n%s\n%s:%d\n", startingNodeName, "127.0.0.1", 20000);
-            out.println(notifyMessage);
-            out.flush();
+            String notifyMessage = String.format("NOTIFY?\n%s\n%s:%d\n", startingNodeName, startingNodeAddress);
+            outWriter.write(notifyMessage);
+            outWriter.flush();
 
             String notifyResponse = in.readLine();
             if ("NOTIFIED".equals(notifyResponse)) {

@@ -2,16 +2,15 @@
 // Coursework 2023/2024
 //
 // Submission by
-// YOUR_NAME_GOES_HERE
-// YOUR_STUDENT_ID_NUMBER_GOES_HERE
-// YOUR_EMAIL_GOES_HERE
+// Zain Kashif
+// 2200010501
+// zain.kashif@city.ac.uk
 
 
 import java.io.*;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,25 +40,6 @@ public class TemporaryNode implements TemporaryNodeInterface {
         }
         return hexString.toString();
     }
-
-    // Method to calculate the distance between two hashIDs as per 2D#4
-    private int calculateDistance(String hashID1, String hashID2) {
-        // Convert hashID strings to BigInteger for bitwise operations
-        BigInteger id1 = new BigInteger(hashID1, 16);
-        BigInteger id2 = new BigInteger(hashID2, 16);
-
-        // Perform bitwise XOR to find differing bits
-        BigInteger xorResult = id1.xor(id2);
-
-        // Count the number of leading zeros in the XOR result
-        // BigInteger does not have a built-in method to count leading zeros
-        // Convert to binary string and count leading zeros
-        String xorBinStr = xorResult.toString(2);
-        int distance = 256 - xorBinStr.length(); // Since xorResult is up to 256 bits
-
-        return distance; // This represents the number of leading matching bits, thus the distance
-    }
-
 
     public List<String> findClosestFullNode(String targetHashID, String startingNodeAddress, String startingNodeName) throws IOException {
 
