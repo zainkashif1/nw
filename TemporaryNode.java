@@ -221,11 +221,8 @@ public class TemporaryNode implements TemporaryNodeInterface {
             // Send a START message
             outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
             outWriter.flush();
-
             String startResponse = in.readLine();
-            if (startResponse == null || !startResponse.startsWith("START")) {
-                throw new IOException("Failed to start communication with the starting node.");
-            }
+
 
             // Send a PUT? request
             outWriter.write("PUT? 1 1\n" + key + "\n" + value + "\n");
@@ -265,6 +262,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             // Send a START message
             outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
             outWriter.flush();
+            in.readLine();
 
             // Send a GET? request
             int numberOfLines = key.split("\\n").length; // Subtract 1 because the last split element is after the final newline
@@ -275,7 +273,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
             // Read the response
             String response = in.readLine();
-            System.out.println("Response is: " + response);
+            System.out.println("GET? response is: " + response);
             if (response != null && response.startsWith("VALUE")) {
                 int count = Integer.parseInt(response.split(" ")[1]);
                 StringBuilder value = new StringBuilder();
@@ -285,7 +283,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
                         value.append("\n");
                     }
                 }
-                System.out.println("Value is: "+value.toString());
+                System.out.println("Value is: "+value);
 
                 // Optional: Send an END message to terminate the connection
                 outWriter.write("END Successful_retrieval\n");
