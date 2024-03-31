@@ -266,8 +266,10 @@ public class TemporaryNode implements TemporaryNodeInterface {
             outWriter.flush();
 
             // Send a GET? request
-            int numberOfLinesForKey = key.split("\n").length; // Count the number of lines, assuming the key contains a newline character
-            outWriter.write("GET? " + numberOfLinesForKey + "\n" + key); // No need to append an additional newline character
+            int numberOfLines = key.split("\n").length - 1; // Subtract 1 because the last split element is after the final newline
+
+            // Send a GET? request with the correct number of lines
+            outWriter.write(String.format("GET? %d\n%s", numberOfLines, key));
             outWriter.flush();
 
             // Read the response
@@ -282,17 +284,19 @@ public class TemporaryNode implements TemporaryNodeInterface {
                     }
                 }
 
-                // Send an END message
-                outWriter.write("END Successful_retrieval\n");
-                outWriter.flush();
+                // Optional: Send an END message to terminate the connection
+       //         outWriter.write("END Successful retrieval\n");
+     //           outWriter.flush();
+
                 return value.toString();
             } else if ("NOPE".equals(response)) {
-                // Send an END message
-                outWriter.write("END Key_not_found\n");
+                // Optional: Send an END message to indicate no value was found
+                outWriter.write("END Key not found\n");
                 outWriter.flush();
                 return null;  // Key not found at this node
             }
         } catch (IOException e) {
+            System.err.println("Error during the queryNodeForValue operation: " + e.getMessage());
             e.printStackTrace();
         }
 
