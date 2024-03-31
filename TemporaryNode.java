@@ -277,6 +277,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             String response = in.readLine();
             if (response != null && response.startsWith("VALUE")) {
                 int count = Integer.parseInt(response.split(" ")[1]);
+                count+=1;
                 StringBuilder value = new StringBuilder();
                 for (int i = 0; i < count; i++) {
                     value.append(in.readLine());
@@ -287,14 +288,14 @@ public class TemporaryNode implements TemporaryNodeInterface {
                 System.out.println(value.toString());
 
                 // Optional: Send an END message to terminate the connection
-                outWriter.write("END Successful retrieval\n");
+                outWriter.write("END Successful_retrieval\n");
                 outWriter.flush();
 
 
                 return value.toString();
             } else if ("NOPE".equals(response)) {
                 // Optional: Send an END message to indicate no value was found
-                outWriter.write("END Key not found\n");
+                outWriter.write("END Key_not_found\n");
                 outWriter.flush();
                 return null;  // Key not found at this node
             }
