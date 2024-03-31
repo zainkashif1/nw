@@ -241,7 +241,7 @@ public class FullNode implements FullNodeInterface {
             }
 
             // Notify the known node about this full node's presence
-            String notifyMessage = String.format("NOTIFY?\n%s\n%s:%d\n", startingNodeName, startingNodeAddress);
+            String notifyMessage = String.format("NOTIFY?\n%s\n%s\n", startingNodeName, startingNodeAddress);
             outWriter.write(notifyMessage);
             outWriter.flush();
 
