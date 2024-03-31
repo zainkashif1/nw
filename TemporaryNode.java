@@ -225,7 +225,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
 
 
             // Send a PUT? request
-            outWriter.write("PUT? 1 1\n" + key + "\n" + value + "\n");
+            outWriter.write("PUT? 1 1\n" + key + value + "\n");
             outWriter.flush();
 
             // Read the response
