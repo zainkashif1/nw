@@ -11,6 +11,7 @@ import java.io.*;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -283,10 +284,12 @@ public class TemporaryNode implements TemporaryNodeInterface {
                         value.append("\n");
                     }
                 }
+                System.out.println(value.toString());
 
                 // Optional: Send an END message to terminate the connection
-       //         outWriter.write("END Successful retrieval\n");
-     //           outWriter.flush();
+                outWriter.write("END Successful retrieval\n");
+                outWriter.flush();
+
 
                 return value.toString();
             } else if ("NOPE".equals(response)) {
