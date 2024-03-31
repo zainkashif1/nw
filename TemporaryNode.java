@@ -266,7 +266,7 @@ public class TemporaryNode implements TemporaryNodeInterface {
             outWriter.flush();
 
             // Send a GET? request
-            int numberOfLines = key.split("\n").length - 1; // Subtract 1 because the last split element is after the final newline
+            int numberOfLines = key.split("\\n").length; // Subtract 1 because the last split element is after the final newline
 
             // Send a GET? request with the correct number of lines
             outWriter.write(String.format("GET? %d\n%s", numberOfLines, key));
