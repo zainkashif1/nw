@@ -166,7 +166,7 @@ public class FullNode implements FullNodeInterface {
 
                 switch (command) {
                     case "START":
-                        out.write("START 1 zain.kashif@city.ac.uk:zains-implementation-1.0,fullNode-20001");
+                        out.write("START 1 zain.kashif@city.ac.uk:zains-implementation-1.0,fullNode-20001\n");
                         out.flush();
                         break;
                     case "GET?":
@@ -310,12 +310,12 @@ public class FullNode implements FullNodeInterface {
     private void handleNotifyRequest(OutputStreamWriter out, String nodeName, String nodeAddress) throws IOException{
         // Add or update the node information in the network map
         networkMap.put(nodeName, nodeAddress);
-        out.write("NOTIFIED");
+        out.write("NOTIFIED\n");
         out.flush();
     }
 
     private void handleEchoRequest(OutputStreamWriter out) throws IOException{
-            out.write("OHCE");
+            out.write("OHCE\n");
             out.flush();
     }
 

@@ -138,17 +138,6 @@ public class TemporaryNode implements TemporaryNodeInterface {
                 System.err.println("Failed to receive valid START acknowledgment.");
                 return false;
             }
-
-            // Optionally, use findClosestFullNode method to find and communicate with the closest node
-            // For initial start, this might not be necessary unless you're performing operations that require the closest node immediately
-            // String closestNodeAddress = findClosestFullNode(someHashID, startingNodeAddress);
-            // if (closestNodeAddress == null) {
-            //     System.err.println("Failed to find the closest node.");
-            //     return false;
-            // }
-
-            // At this point, the temporary node is considered successfully started
-            // Further operations can be performed as needed
             return true;
         } catch (IOException e) {
             System.err.println("An error occurred while trying to start communication with the network: " + e.getMessage());
