@@ -269,7 +269,7 @@ public class FullNode implements FullNodeInterface {
         String value = valueBuilder.toString();
         String keyHashID = bytesToHex(HashID.computeHashID(key + "\n"));
 
-        List<String> closestNodes = findClosestFullNode(keyHashID, "localhost:20001", ",fullNode-20001");
+        List<String> closestNodes = findClosestFullNode(keyHashID, networkMap.get(requestParts[3]), requestParts[3]);// ??
         String currentNodeHashID = bytesToHex(HashID.computeHashID(key + "\n"));
 
         if (closestNodes.contains(currentNodeHashID)) {
