@@ -6,13 +6,15 @@
 // 2200010501
 // zain.kashif@city.ac.uk
 
+import java.util.concurrent.*;
+
 
 import java.io.*;
 import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 // DO NOT EDIT starts
@@ -53,6 +55,70 @@ public class FullNode implements FullNodeInterface {
         }
         return hexString.toString();
     }
+    public List<String> findClosestFullNode(String targetHashID, String startingNodeAddress, String startingNodeName) throws IOException {
+
+        String[] addressComponents = startingNodeAddress.split(":");
+        if (addressComponents.length != 2) {
+            throw new IllegalArgumentException("Invalid starting node address format.");
+        }
+        String host = addressComponents[0];
+        int port = Integer.parseInt(addressComponents[1]);
+
+        try (Socket socket = new Socket(host, port);
+             OutputStreamWriter outWriter = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+            outWriter.write("START 1 zain.kashif@city.ac.uk:idk-1\n");
+            outWriter.flush();
+
+            String startResponse = in.readLine();
+            if (startResponse == null || !startResponse.startsWith("START")) {
+                throw new IOException("Failed to start communication with the starting node.");
+            }
+
+            outWriter.write("NEAREST? " + targetHashID + "\n");
+            outWriter.flush();
+
+            String nodesResponse = in.readLine();
+            if (nodesResponse == null) {
+                throw new IOException("No NODES response received.");
+            } else if (!nodesResponse.startsWith("NODES")) {
+                if (nodesResponse.startsWith("END")) {
+                    System.err.println("Received END message from the starting node.");
+                } else {
+                    throw new IOException("Invalid NODES response: " + nodesResponse);
+                }
+            }
+
+            int numberOfNodes = Integer.parseInt(nodesResponse.split(" ")[1]);
+            if (numberOfNodes <= 0) {
+                throw new IOException("NODES response indicates no nodes available.");
+            }
+
+            List<String> nodeAddresses = new ArrayList<>();
+
+            // After the NEAREST? request and you receive the NODES response
+            for (int i = 0; i < numberOfNodes; i++) {
+                String nodeName = in.readLine();
+                String nodeAddress = in.readLine();
+                if (nodeName == null || nodeAddress == null) {
+                    throw new IOException("Node name or address is missing in the NODES response.");
+                }
+                nodeAddresses.add(nodeAddress);
+            }
+
+            if (nodeAddresses.isEmpty()) {
+                throw new IOException("No nodes were found in the NODES response.");
+            }
+            System.out.println(nodeAddresses);
+            return nodeAddresses;
+
+
+        } catch (IOException e) {
+            System.err.println("An error occurred while trying to find the closest node: " + e.getMessage());
+            return null;
+        }
+    }
 
 
 
@@ -63,7 +129,7 @@ public class FullNode implements FullNodeInterface {
         try {
             ServerSocket serverSocket = new ServerSocket(portNumber);
             System.out.println("FullNode listening on " + ipAddress + ":" + portNumber);
-
+            startActiveMappingScheduler();
             // Continuously accept new connections
             new Thread(() -> {
                 while (!serverSocket.isClosed()) {
@@ -85,6 +151,8 @@ public class FullNode implements FullNodeInterface {
 
     }
     private void handleConnection(Socket clientSocket) {
+        String clientAddress = clientSocket.getInetAddress().getHostAddress() + ":" + clientSocket.getPort();
+        networkMap.put(clientAddress, "");
         try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
              OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8)) {
 
@@ -98,7 +166,7 @@ public class FullNode implements FullNodeInterface {
 
                 switch (command) {
                     case "START":
-                        out.write("START 1 dontknow");
+                        out.write("START 1 zain.kashif@city.ac.uk:zains-implementation-1.0,fullNode-20001");
                         out.flush();
                         break;
                     case "GET?":
@@ -107,7 +175,7 @@ public class FullNode implements FullNodeInterface {
                         break;
                     case "PUT?":
                         // Assume additional lines follow based on the protocol for PUT? request
-                        handlePutRequestLogic(in, out, requestParts);
+                        handlePutRequest(in, out, requestParts);
                         break;
                     case "NOTIFY?":
                         // Handle NOTIFY? request which expects node name and address in subsequent lines
@@ -145,34 +213,84 @@ public class FullNode implements FullNodeInterface {
     }
 
     private void handleGetRequestLogic(BufferedReader in, OutputStreamWriter out, String[] requestParts) throws IOException {
+        // Parse the number of key lines expected
         int keyLines = Integer.parseInt(requestParts[1]);
-        StringBuilder keyBuilder = new StringBuilder();
-        for (int i = 0; i < keyLines; i++) {
-            keyBuilder.append(in.readLine());
-            if (i < keyLines - 1) keyBuilder.append("\n");
+
+        // Protocol specifies that the number of key lines must be more than one
+        if (keyLines <= 1) {
+            out.write("ERROR Invalid number of key lines; must be more than one.\n");
+            out.flush();
+            return;
         }
+
+        StringBuilder keyBuilder = new StringBuilder();
+        try {
+            for (int i = 0; i < keyLines; i++) {
+                String line = in.readLine();
+                if (line == null) {  // Handle end of stream before expected
+                    out.write("ERROR Unexpected end of input stream.\n");
+                    out.flush();
+                    return;
+                }
+                keyBuilder.append(line);
+                if (i < keyLines - 1) {
+                    keyBuilder.append("\n");  // Preserve line breaks as part of the key
+                }
+            }
+        } catch (IOException e) {
+            out.write("ERROR Error reading key lines: " + e.getMessage() + "\n");
+            out.flush();
+            return;
+        }
+
         handleGetRequest(out, keyBuilder.toString());
     }
 
-    private void handlePutRequestLogic(BufferedReader in, OutputStreamWriter out, String[] requestParts) throws IOException {
+
+    private void handlePutRequest(BufferedReader in, OutputStreamWriter out, String[] requestParts) throws IOException {
         int keyLines = Integer.parseInt(requestParts[1]);
         int valueLines = Integer.parseInt(requestParts[2]);
         StringBuilder keyBuilder = new StringBuilder();
         StringBuilder valueBuilder = new StringBuilder();
+
+        try{
         for (int i = 0; i < keyLines; i++) {
             keyBuilder.append(in.readLine());
+            if (i < keyLines - 1) keyBuilder.append("\n");
         }
+
         for (int i = 0; i < valueLines; i++) {
             valueBuilder.append(in.readLine());
+            if (i < valueLines - 1) valueBuilder.append("\n");
         }
-        handlePutRequest(out, keyBuilder.toString(), valueBuilder.toString());
+
+        String key = keyBuilder.toString();
+        String value = valueBuilder.toString();
+        String keyHashID = bytesToHex(HashID.computeHashID(key + "\n"));
+
+        List<String> closestNodes = findClosestFullNode(keyHashID, "localhost:20001", ",fullNode-20001");
+        String currentNodeHashID = bytesToHex(HashID.computeHashID(key + "\n"));
+
+        if (closestNodes.contains(currentNodeHashID)) {
+            kvStorage.put(key, value);
+            out.write("SUCCESS\n");
+        } else {
+            out.write("FAILED\n");
+        }
+        out.flush();
+    } catch (Exception e) {
+        out.write("FAILED\n");
+        out.flush();
     }
+    }
+
+
 
     private void handleGetRequest(OutputStreamWriter out, String key) throws IOException {
         String value = kvStorage.get(key);
         if (value != null) {
-            // Split the value by new lines to accurately report the number of lines
-            String[] valueLines = value.split("\n", -1);  // The -1 limit parameter makes it include empty trailing strings
+            // Split the value to count the lines properly, including empty trailing lines
+            String[] valueLines = value.split("\n", -1);
             out.write("VALUE " + valueLines.length + "\n");
             for (String line : valueLines) {
                 out.write(line + "\n");
@@ -180,14 +298,15 @@ public class FullNode implements FullNodeInterface {
         } else {
             out.write("NOPE\n");
         }
-        out.flush();  // Ensure to flush after handling both cases
+        out.flush();
     }
 
-    private void handlePutRequest(OutputStreamWriter out, String key, String value) throws IOException {
+
+    /* private void handlePutRequest(OutputStreamWriter out, String key, String value) throws IOException {
         kvStorage.put(key, value);
         out.write("SUCCESS");
         out.flush();
-    }
+    }*/
     private void handleNotifyRequest(OutputStreamWriter out, String nodeName, String nodeAddress) throws IOException{
         // Add or update the node information in the network map
         networkMap.put(nodeName, nodeAddress);
@@ -195,27 +314,69 @@ public class FullNode implements FullNodeInterface {
         out.flush();
     }
 
-    // Method to handle ECHO? requests
     private void handleEchoRequest(OutputStreamWriter out) throws IOException{
             out.write("OHCE");
             out.flush();
     }
 
     // Method to handle NEAREST? requests
-    private void handleNearestRequest(OutputStreamWriter out, String hashID) throws IOException {
-        // Simplified example: Return up to 3 closest nodes from the network map
-        // In a real implementation, you'd calculate distances based on hashIDs
-        // For simplicity, we'll just return the first three nodes (or fewer, if not enough nodes are known)
-        int nodesReturned = 0;
-        StringBuilder response = new StringBuilder("NODES ");
+    private void handleNearestRequest(OutputStreamWriter out, String targetHashID) throws IOException {
+        // Priority queue to maintain the closest nodes with a custom comparator that sorts by distance
+        PriorityQueue<Map.Entry<String, Integer>> nodeQueue = new PriorityQueue<>(
+                (a, b) -> Integer.compare(a.getValue(), b.getValue())
+        );
+
+        // Compute distance for each node and add it to the priority queue
         for (Map.Entry<String, String> entry : networkMap.entrySet()) {
-            if (nodesReturned >= 3) break; // Limit to 3 nodes
-            response.append(entry.getKey()).append(" ").append(entry.getValue()).append("\n");
+            String nodeHashID = entry.getKey();  // Assuming the key is the node's hashID
+            int distance = calculateDistance(targetHashID, nodeHashID);
+            nodeQueue.add(new AbstractMap.SimpleEntry<>(entry.getValue(), distance));
+        }
+
+        // Building the response with up to 3 closest nodes
+        StringBuilder response = new StringBuilder("NODES ");
+        int nodesReturned = 0;
+        while (!nodeQueue.isEmpty() && nodesReturned < 3) {
+            Map.Entry<String, Integer> nearestNode = nodeQueue.poll();
+            response.append(nearestNode.getKey()).append("\n");
             nodesReturned++;
         }
-        response.insert(6, nodesReturned); // Insert the count of nodes at the correct position
-        out.write(response.toString().trim()); // Remove the last newline
+
+        // Insert the count of nodes returned at the correct position in the response
+        response.insert(6, nodesReturned + " "); // Adjust the position if needed based on actual format
+
+        // Send the response
+        out.write(response.toString().trim() + "\n");
         out.flush();
+    }
+
+    private void performActiveMapping() {
+        Iterator<Map.Entry<String, String>> it = networkMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, String> entry = it.next();
+            String nodeAddress = entry.getValue();
+            try (Socket socket = new Socket(nodeAddress.split(":")[0], Integer.parseInt(nodeAddress.split(":")[1]));
+                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+                // Send a NOTIFY? request or a custom ping message
+                out.println("NOTIFY?");
+                String response = in.readLine();
+                if (!"NOTIFIED".equals(response)) {
+                    // If no proper response, remove from map
+                    it.remove();
+                }
+            } catch (IOException e) {
+                // If error in connecting, remove from map
+                it.remove();
+            }
+        }
+    }
+
+
+    public void startActiveMappingScheduler() {
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.scheduleAtFixedRate(this::performActiveMapping, 0, 10, TimeUnit.SECONDS);  // Every 10 seconds
     }
 
     public void handleIncomingConnections(String startingNodeName, String startingNodeAddress) {
