@@ -340,8 +340,8 @@ public class FullNode implements FullNodeInterface {
             }
         }
 
-        // Build the response with the node names and addresses for the three closest nodes
-        StringBuilder response = new StringBuilder("NODES ");
+        // Build the response with the node names and addresses for up to three closest nodes
+        StringBuilder response = new StringBuilder();
         int nodesReturned = 0;
         while (!closestNodesQueue.isEmpty() && nodesReturned < 3) {
             Map.Entry<String, Integer> closestNodeEntry = closestNodesQueue.poll();
@@ -351,13 +351,14 @@ public class FullNode implements FullNodeInterface {
             nodesReturned++;
         }
 
-        // Prepend the number of nodes to the response
-        response.insert(6, nodesReturned); // Insert the node count after "NODES "
+        // Prepend the number of nodes returned at the start of the response
+        response.insert(0, "NODES " + nodesReturned + "\n");
 
         // Send the response
-        out.write(response.toString().trim() + "\n"); // Trim in case there are extra newlines
+        out.write(response.toString()); // No need to trim as we controlled the formatting
         out.flush();
     }
+
 
 
 
