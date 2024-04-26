@@ -151,8 +151,6 @@ public class FullNode implements FullNodeInterface {
 
     }
     private void handleConnection(Socket clientSocket) {
-        String clientAddress = clientSocket.getInetAddress().getHostAddress() + ":" + clientSocket.getPort();
-        networkMap.put(clientAddress, "");
         try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
              OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8)) {
 
@@ -166,7 +164,10 @@ public class FullNode implements FullNodeInterface {
 
                 switch (command) {
                     case "START":
-                        out.write("START 1 zain.kashif@city.ac.uk:zains-implementation-1.0,fullNode-20001\n");
+                        String nodeName1 = requestParts[2]; // Assuming the node name is the third part of the START message
+                        // Update networkMap with node name and client address
+                        networkMap.put(nodeName1, clientSocket.getInetAddress().getHostAddress() + ":" + clientSocket.getPort());
+                        out.write("START 1 " + nodeName1 + "\n");
                         out.flush();
                         break;
                     case "GET?":
@@ -322,40 +323,42 @@ public class FullNode implements FullNodeInterface {
     // Method to handle NEAREST? requests
     private void handleNearestRequest(OutputStreamWriter out, String targetHashID) throws IOException {
         // Initialize a priority queue that sorts nodes based on the distance to the target hash ID
-        try {
-            PriorityQueue<Map.Entry<String, Integer>> closestNodesQueue = new PriorityQueue<>(
-                    Comparator.comparingInt(Map.Entry::getValue)
-            );
+        PriorityQueue<Map.Entry<String, Integer>> closestNodesQueue = new PriorityQueue<>(
+                Comparator.comparingInt(Map.Entry::getValue)
+        );
 
-            // Compute distances for each node and add them to the priority queue
-            for (Map.Entry<String, String> entry : networkMap.entrySet()) {
+        // Compute distances for each node and add them to the priority queue
+        for (Map.Entry<String, String> entry : networkMap.entrySet()) {
+            try {
                 String nodeHashID = bytesToHex(HashID.computeHashID(entry.getKey() + "\n"));
                 int distance = calculateDistance(targetHashID, nodeHashID);
                 closestNodesQueue.offer(new AbstractMap.SimpleEntry<>(entry.getKey(), distance));
+            } catch (Exception e) {
+                System.err.println("Error computing hashID for node: " + e.getMessage());
+                // Consider whether to continue and try the next node, or abort and send an error.
+                // This example continues to the next node.
             }
-
-            // Build the response with the node names and addresses for the three closest nodes
-            StringBuilder response = new StringBuilder();
-            int nodesReturned = 0;
-            while (!closestNodesQueue.isEmpty() && nodesReturned < 3) {
-                Map.Entry<String, Integer> closestNodeEntry = closestNodesQueue.poll();
-                String nodeName = closestNodeEntry.getKey();
-                String nodeAddress = networkMap.get(nodeName);
-                response.append(nodeName).append("\n").append(nodeAddress).append("\n");
-                nodesReturned++;
-            }
-
-            // Prepend the number of nodes to the response
-            response.insert(0, "NODES " + nodesReturned + "\n");
-
-            // Send the response
-            out.write(response.toString());
-            out.flush();
-        } catch (Exception e) {
-            out.write("END\n");
-            out.flush();
         }
+
+        // Build the response with the node names and addresses for the three closest nodes
+        StringBuilder response = new StringBuilder("NODES ");
+        int nodesReturned = 0;
+        while (!closestNodesQueue.isEmpty() && nodesReturned < 3) {
+            Map.Entry<String, Integer> closestNodeEntry = closestNodesQueue.poll();
+            String nodeName = closestNodeEntry.getKey();
+            String nodeAddress = networkMap.get(nodeName);
+            response.append(nodeName).append("\n").append(nodeAddress).append("\n");
+            nodesReturned++;
+        }
+
+        // Prepend the number of nodes to the response
+        response.insert(6, nodesReturned); // Insert the node count after "NODES "
+
+        // Send the response
+        out.write(response.toString().trim() + "\n"); // Trim in case there are extra newlines
+        out.flush();
     }
+
 
 
     private void performActiveMapping() {
