@@ -1,0 +1,20 @@
+ECHO?
+OHCE
+PUT? 1 1
+Welcome
+Hello
+FAILED
+GET? 2
+Working
+
+NOPE
+GET? 1
+ERROR Invalid number of key lines; must be more than one.
+NOTIFY?
+martin.brain@city.ac.uk:MyCoolImplementation,1.41,test-node-2
+127.0.0.1:2244
+NOTIFIED
+NEAREST? 0f003b106b2ce5e1f95df39fffa34c2341f2141383ca46709269b13b1e6b4832
+NODES 0
+0f003b106b2ce5e1f95df39fffa34c2341f2141383ca46709269b13b1e6b4832.[A.[B.[B.[A.[A
+END_unknown_command
