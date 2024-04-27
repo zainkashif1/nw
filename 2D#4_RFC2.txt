@@ -1,0 +1,364 @@
+Network Working Group                                       M. Nyx Brain
+Request for Comments: TBD                     City, University of London
+Version: 3                                                 February 2024
+
+               2D#4 : A Peer-to-Peer Distributed Hash Table
+
+Abstract
+
+   2D#4 (pronounced "two-dee-hash-four") is a peer-to-peer protocol
+   that creates a hash table distributed across a set of nodes.  Every
+   node in the network stores some of the entries in the hash table.
+   It is a decentralised, fault-tolerant and highly scalable system.
+
+   Every node has a name which identifies it and a hashID, which is
+   the hash of its name.  Every entry in the hash table is a pair
+   (key, value).  These also have a hashID which is the hash of the
+   key.  By calculating the distance between hashIDs, nodes can focus on
+   storing the keys that are "near" them and on finding the nodes that
+   are "nearest" to them.  This allows nodes to join and leave the
+   network without any central co-ordination and reduces the resources
+   they require.
+
+   Nodes communicate over TCP using a simple request and response
+   protocol.  This document describes the required formats and the
+   protocol for communication between nodes.
+
+
+1. Terminology
+
+   The terminology of RFC 2119 is used : MUST, SHOULD and MAY.
+
+   The following terms will be used in this document:
+
+   String : One or more bytes.  Unless otherwise specified this is
+   should be interpreted as text encoded using UTF-8.
+   
+   Line : A line is a string where the last character is a new line
+   character (\n).
+
+   Key : A key is one or more lines of text.
+
+   Value : A value is one or more lines of text.
+
+
+2. HashIDs
+
+   A hashID is the SHA-256 hash of one or more lines of text
+   (including the new line character at the end).  When used in the
+   protocol these are formatted as 64 hex digits.  For example the
+   line of text:
+
+   Hello World!
+
+   gives the hashID:
+
+   03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340
+
+   The distance between two hashIDs is 256 minus the number of
+   leading bits that match.  For example, if the two hashIDs are:
+
+   0f033be6cea034bd45a0352775a219ef5dc7825ce55d1f7dae9762d80ce64411
+   0f0139b167bb7b4a416b8f6a7e0daa7e24a08172b9892171e5fdc615bb7f999b
+
+   then the first 14 bits match so the distance between the keys is
+   242.  The distance between a hashID and itself is 0 as all of the bits
+   match.  The distance from H1 to H2 is the same as the distance from
+   H2 to H1.  Also the following triangle inequality holds:
+
+   distance(H1,H3) <= distance(H1, H2) + distance(H2, H3)
+   
+
+3. Nodes
+
+   A participant in the 2D#4 network are referred to as a node.  There
+   are two kinds of node, full nodes and temporary nodes.  Temporary
+   nodes are limited members of the network.  They do not store values
+   or respond to requests.
+
+   All nodes have a name.  The name is a line of text, divided into two
+   parts by a ':' character.  The first string MUST be the e-mail address
+   of the operator of the node.  The second string MUST be unique for
+   each node that the operator runs.  It MAY contain information such
+   as software version, purpose or status.  For example:
+
+   martin.brain@city.ac.uk:MyCoolImplementation,1.41,test-node-2
+
+   The name is used to compute the node's hashID.  For example the
+   name has the following hashID:
+
+   b3d14d4c7e88edfdab41e6eb52830614868946b600d069a6644663403824c518
+
+   The distance between different nodes is the distance between their
+   hashIDs.
+
+   Full nodes also have an address.  The address is a line of text,
+   divided into two parts with by ':' character.  The first MUST be an
+   IP address or DNS address.  The second MUST be a valid TCP port
+   number.  For example:
+
+   127.0.0.1:2244
+
+
+4. Transport Layer
+
+   2D#4 is an application layer protocol that runs over TCP.
+   Temporary nodes MUST only act as TCP clients.  Full nodes MUST act
+   as TCP servers and accept incoming connections using the IP address
+   and port number in their address.  Full nodes MAY act as TCP clients.
+
+
+5. Network Mapping
+
+   A network map is a map from the names of full nodes to their
+   addresses.  It is used to find the node that is storing the
+   relevant part of the hash table.  Full nodes MUST build and
+   maintain a network map.
+
+   Each node's network map MUST contain itself.  It MUST contain at
+   most three nodes at every distance (three nodes at distance 10,
+   three nodes at distance 11, etc.).  If a node finds more than
+   three nodes at the same distance it MUST only keep three.  It
+   SHOULD pick to maximise network robustness and stability.  This MAY
+   be picking the longest running node.  Nodes MUST remove entries
+   from their map if they are uncontactable or incorrectly implement
+   the protocol.
+
+   By limiting the number of nodes in the map the memory required is
+   limited and does not grow with the size of network.  By storing
+   nodes at all distances, the number of nodes that must be contacted
+   to find the nearest hashID is minimised.
+   
+   The map MAY be built by passive mapping; recording the names of
+   nodes and addresses of full nodes that it has interacted with.
+   It MAY also be built by active mapping; connecting to other nodes
+   and querying their maps.
+
+   Full nodes MUST use the NOTIFY request to inform other full nodes
+   of their address.  All nodes MAY use the NOTIFY request to inform
+   full nodes of addresses of other full nodes.
+
+
+6. Communication Between Nodes
+
+   Communication between nodes uses a plain-text request and response
+   protocol.  The node that acts as the TCP client is the requester
+   and the node that acts as the TCP server is the responder in the
+   2D#4 protocol.  Both the requester and responder MUST send an
+   initial START message.  The requester MAY then make as many
+   requests as they want and the responder must respond.  The
+   communication MUST end when either side sends a END message.
+
+
+6.1 START message
+
+   Both nodes MUST send a START message at the start of the
+   communication.  They MUST NOT send a START message at any other
+   time.  A START message is a single line consisting of three parts:
+
+   START <number> <string>
+
+   The number gives the highest protocol version supported by the
+   sender.  The communication must use the highest protocol version
+   supported by both the requester and the receiver.  This document
+   describes protocol version 1.
+   
+   The string gives the node name of the sender.
+
+   For example on connecting to the example node above the first message
+   received could be:
+
+   START 1 martin.brain@city.ac.uk:MyCoolImplementation,1.41,test-node-2
+
+
+6.2. END message
+
+   Either node MAY end the communication by sending a END message.  A
+   END message is a single line consisting of two parts:
+
+   END <string>
+
+   The string is the reason for ending the communication.
+   Implementations SHOULD give a meaningful reason.  After one node
+   sends a END message both nodes MUST close the connection.
+
+   For example a node might send:
+
+   END Time-out
+
+
+6.3. ECHO? request
+
+   The requester MAY send a ECHO request.  A ECHO message is a single
+   line with one part:
+
+   ECHO?
+   
+   The responder MUST respond with a single line with one part:
+
+   OHCE
+   
+   This message allows the requester to tell whether the connection is
+   still active and the responder is still working correctly.
+
+
+6.4. PUT? Request
+
+   The requester MAY send a PUT request.  This will attempt to add a
+   (key, value) pair to the hash table.  A PUT request is three or
+   more lines.  The first line has two parts:
+
+   PUT? <number> <number>
+
+   The first number indicates the how many lines of key follow.  This MUST
+   be at least one. The second number indicates how many line of value
+   follow.  This MUST be at least one.
+
+   When the responder gets a PUT request it must compute the hashID
+   for the key to be stored.  Then it must check its network
+   map for the three closest nodes to the key's hashID.  If the
+   responder is one of the three nodes that are closest then 
+   it MUST store the (key, value) pair and MUST respond with a single
+   line:
+
+   SUCCESS
+
+   If the responder finds three nodes that are closer to the hashID
+   then it MUST refuse to store the value and MUST respond with a
+   single line:
+   
+   FAILED
+
+   For example if a requester sends:
+
+   PUT? 1 2
+   Welcome
+   Hello
+   World!
+
+   The response might store the pair ("Welcome\n","Hello\nWorld!\n")
+   and return
+
+   SUCCESS
+
+   or
+
+   FAILED
+
+   depending on the distance between the responder's hashID and the
+   key's hashID and what other nodes are in its network map.
+
+
+6.5. GET? request
+
+   The requester MAY send a GET request.  This will attempt to find
+   the value corresponding to the given key.  A GET request is two or
+   more lines.  The first line is two parts:
+   
+   GET? <number>
+
+   The number is the number of lines of key that follow.  This MUST be
+   more than one.  The responder MUST see if it has a value stored for
+   that key. If it does it MUST return a VALUE response.  A VALUE
+   response is two or more lines.  The first line has two parts:
+
+   VALUE <number>
+
+   The number indicates the number of lines in the value.  This MUST
+   be at least one.  The second part of the VALUE response is the
+   value that is stored for the key.
+
+   If the responder does not have a value stored which has the
+   requested key, it must respond with a single line:
+
+   NOPE
+
+   For example if a requester sends:
+
+   GET? 1
+   Welcome
+
+   Then the response would either be:
+
+   VALUE 2
+   Hello
+   World!
+
+   or
+
+   NOPE
+
+
+6.6. NOTIFY? request
+
+   The requester MAY send a NOTIFY request.  This informs the responder
+   of the name and address of a full node.  A NOTIFY request is three
+   lines.  The first line is a single part:
+
+   NOTIFY?
+
+   The second line is the name of the full node.  The third line is the
+   address of the full node.
+
+   The responder MUST respond with a single line with one part:
+
+   NOTIFIED
+
+   For example the if the requester sends:
+
+   NOTIFY?
+   martin.brain@city.ac.uk:MyCoolImplementation,1.41,test-node-2
+   127.0.0.1:2244
+
+   Then the response would be:
+
+   NOTIFIED
+  
+
+6.7. NEAREST? request
+
+   The requester MAY send a NEAREST request.  A NEAREST
+   request is a single line with two parts:
+
+   NEAREST? <string>
+
+   The string is a hashID written in hex.  The responder MUST look at its
+   network map and return the three nodes with the closest hashID
+   to the requested hashID.  It MUST return a NODES response.  A NODES
+   response is between three and seven lines.  The first line has two parts:
+
+   NODES <number>
+
+   The number is the number of full node names and addresses that follow.
+
+   The requester MUST NOT assume that the responder is aware of all of
+   the nodes in the network and SHOULD query nodes closer to the key.
+
+   For example if a requester sends:
+
+   NEAREST? 0f003b106b2ce5e1f95df39fffa34c2341f2141383ca46709269b13b1e6b4832
+
+   then the responder might return:
+
+   NODES 3
+   martin.brain@city.ac.uk:MyCoolImplementation,1.41,test-node-1
+   10.0.0.4:2244
+   martin.brain@city.ac.uk:MyCoolImplementation,1.67,test-node-7
+   10.0.0.23:2400
+   martin.brain@city.ac.uk:MyCoolImplementation,1.67,test-node-9
+   10.0.0.96:35035
+
+
+7. Robustness
+
+   If an invalid request or response is sent a node SHOULD terminate
+   the connection by sending an END message and remove the node from
+   its network map.
+
+   When a node wishes to store a (key,value) pair it SHOULD find the
+   three nodes in the network that are nearest to the key hashID and
+   send PUT requests to each of them.
+
+   If a full node is no longer one of the closest three nodes to a
+   value it has stores it SHOULD contact the three closest nodes and
+   store the value with them.
